@@ -1,4 +1,4 @@
-# Outreach Plan — Validation Step 2
+# Outreach Plan - Validation Step 2
 
 Goal: **10 conversations with compliance professionals in 2 weeks**, converting to
 at least **1 "skin in the game" commitment** (a signed LOI for a paid pilot, or a
@@ -8,7 +8,7 @@ dummy dataset to test the engine against). "This looks cool" does not count.
 
 ## 1. Build the target list (Day 1–2)
 
-**Who:** the people who feel the pain daily — not CEOs.
+**Who:** the people who feel the pain daily - not CEOs.
 
 | Priority | Titles to search on LinkedIn |
 |---|---|
@@ -16,13 +16,13 @@ dummy dataset to test the engine against). "This looks cool" does not count.
 | 2 | Head of Risk, Chief Risk Officer (CRO) |
 | 3 | AML Manager, Transaction Monitoring Lead, Fraud & Risk Lead, MLRO |
 
-**Where (Nigeria — primary):** mid-sized fintechs, digital lenders, wallets, and
+**Where (Nigeria - primary):** mid-sized fintechs, digital lenders, wallets, and
 microfinance banks. Big enough to feel alert fatigue, small enough that the
 compliance lead reads their own DMs. Examples: Moniepoint, OPay, PalmPay, Kuda,
 FairMoney, PiggyVest, Carbon, Renmoney, Baxi, TeamApt ecosystem companies.
 Add 2–3 reaches at Paystack / Flutterwave / Interswitch.
 
-**Where (foreign — secondary, 5–10 contacts):** UK/US digital banks and EMIs, to
+**Where (foreign - secondary, 5–10 contacts):** UK/US digital banks and EMIs, to
 test the foreign-market message. Expect slower replies and a data-trust objection;
 lead with "runs in your environment, zero-PII."
 
@@ -32,17 +32,17 @@ lead with "runs in your environment, zero-PII."
 
 ## 2. The messages
 
-### 2a. Connection request note (≤300 characters — hard LinkedIn limit)
+### 2a. Connection request note (≤300 characters - hard LinkedIn limit)
 
-> Hi [Name] — I'm a software engineer building an agent that auto-investigates
+> Hi [Name] - I'm a software engineer building an agent that auto-investigates
 > AML alerts and drafts NFIU-ready STRs, to kill false-positive fatigue. Not
-> selling anything — I'd value 10 mins of your expert read on whether it fits
+> selling anything - I'd value 10 mins of your expert read on whether it fits
 > real compliance workflows.
 
 ### 2b. After they accept (DM, attach `screenshots/overview.png`)
 
 > Thanks for connecting, [Name]. Quick context: most monitoring tools stop at the
-> raw alert — your team still investigates every false positive and writes every
+> raw alert - your team still investigates every false positive and writes every
 > report. I'm building AuditLens: an agent that audits 100% of transactions,
 > investigates each alert itself, clears the false positives *with a written
 > justification retained for audit*, and pre-drafts the STR for the real ones.
@@ -50,19 +50,19 @@ lead with "runs in your environment, zero-PII."
 > Attached is the dashboard from a demo week on synthetic data: 38 alerts → 34
 > auto-cleared → 4 for human review, with the NFIU report drafts ready to sign.
 >
-> I'm not selling — this is early and I'm validating with people who live this
+> I'm not selling - this is early and I'm validating with people who live this
 > daily. Could I get 10–15 minutes this week for your honest read on what this
 > gets right and what it misses?
 
 ### 2c. Bump (4–5 days after 2b, no reply)
 
-> Hi [Name] — I know compliance weeks are brutal, so one-line version: would an
+> Hi [Name] - I know compliance weeks are brutal, so one-line version: would an
 > agent that cleared ~90% of your false-positive alerts *and documented why* be
 > useful, or is the real pain somewhere else? Even a one-word answer helps me.
 
-### 2d. Breakup (7 days after 2c, no reply — then move on)
+### 2d. Breakup (7 days after 2c, no reply - then move on)
 
-> No response needed, [Name] — closing the loop so I'm not noise in your inbox.
+> No response needed, [Name] - closing the loop so I'm not noise in your inbox.
 > If alert fatigue or STR drafting ever becomes the fire of the week, happy to
 > show what we've built. Good luck with the quarter.
 
@@ -72,14 +72,14 @@ bursts); log every send in the tracker the moment it goes out.
 
 ---
 
-## 3. The call (Step 3 — diagnose, don't pitch)
+## 3. The call (Step 3 - diagnose, don't pitch)
 
 15 minutes. Talk max 30% of the time. Order matters: **questions first, demo
-second** — showing the product first contaminates their answers.
+second** - showing the product first contaminates their answers.
 
 **Opening questions (verbatim):**
 1. "Walk me through what happens at your company when a transaction gets flagged
-   — who touches it, and how long does it take end to end?"
+   - who touches it, and how long does it take end to end?"
 2. "What's the most manual, frustrating part of your weekly compliance workflow?"
 3. "Roughly how many hours a week does your team spend investigating alerts that
    turn out to be nothing?"
@@ -103,7 +103,7 @@ ask "what does it check?"
 - *"How do I trust the AI's clearances?"* → The agent never makes the final call;
   every clearance has a written justification retained for audit; humans sign
   everything that leaves the building.
-- *"We already use [ComplyAdvantage / Hawk / etc.]"* → "Perfect — what does it
+- *"We already use [ComplyAdvantage / Hawk / etc.]"* → "Perfect - what does it
   still leave on your desk every day?" (That gap is the product.)
 
 ---
@@ -114,7 +114,7 @@ One spreadsheet, one row per person:
 
 | Column | Values |
 |---|---|
-| Name / Title / Company | — |
+| Name / Title / Company | - |
 | Segment | NG fintech · NG MFB · Foreign |
 | Connection sent / accepted | dates |
 | DM sent / Bump / Breakup | dates |
@@ -128,7 +128,7 @@ repeat. Two weeks ≈ 10 calls.
 
 **Success bar for this phase:** 1+ LOI or data commitment, and the same pain
 named unprompted in 5+ calls. If 10 calls produce neither, the finding is real
-too — revisit the wedge (maybe the product is the STR drafter alone, or the
+too - revisit the wedge (maybe the product is the STR drafter alone, or the
 false-positive investigator alone) before writing more code.
 
 ---
