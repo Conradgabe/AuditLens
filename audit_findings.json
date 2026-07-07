@@ -1,0 +1,326 @@
+{
+  "product": "AuditLens (demo)",
+  "period": {
+    "start": "2026-06-30",
+    "end": "2026-07-06"
+  },
+  "summary": {
+    "transactions_audited": 1224,
+    "alerts_raised": 38,
+    "auto_cleared": 34,
+    "auto_clear_rate": 0.89,
+    "cases_for_review": 4,
+    "str_drafts_ready": 4,
+    "analyst_hours_saved_est": 22.8,
+    "hours_saved_basis": "34 auto-cleared alerts x 35 min avg manual investigation + 4 report drafts x 45 min"
+  },
+  "alerts_by_rule": [
+    {
+      "rule_id": "VEL-01",
+      "rule_name": "Beneficiary velocity spike",
+      "raw": 14,
+      "auto_cleared": 13,
+      "for_review": 1
+    },
+    {
+      "rule_id": "STR-02",
+      "rule_name": "Structuring below CTR threshold",
+      "raw": 6,
+      "auto_cleared": 5,
+      "for_review": 1
+    },
+    {
+      "rule_id": "CBM-03",
+      "rule_name": "Cross-border profile mismatch",
+      "raw": 9,
+      "auto_cleared": 8,
+      "for_review": 1
+    },
+    {
+      "rule_id": "DOR-04",
+      "rule_name": "Dormant account reactivation",
+      "raw": 4,
+      "auto_cleared": 3,
+      "for_review": 1
+    },
+    {
+      "rule_id": "CTR-05",
+      "rule_name": "Currency transaction threshold (auto-filed)",
+      "raw": 5,
+      "auto_cleared": 5,
+      "for_review": 0
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "CASE-2026-0141",
+      "user_id": "USR-2286",
+      "rule_id": "STR-02",
+      "rule_name": "Structuring below CTR threshold",
+      "severity": "critical",
+      "risk_score": 91,
+      "status": "open",
+      "amount_involved_ngn": 5620000,
+      "detected_at": "2026-07-05 08:52",
+      "headline": "6 transfers of ₦880k-₦985k to one beneficiary in 36h; cumulative ₦5.62m exceeds the ₦5m individual CTR threshold",
+      "regulatory_basis": [
+        "Money Laundering (Prevention and Prohibition) Act 2022 - s.2 threshold reporting (₦5m, individuals); structured splitting to evade the threshold",
+        "MLPPA 2022 s.7 - suspicious transaction report to NFIU within 24 hours of suspicion",
+        "CBN AML/CFT/CPF Regulations 2022 - ongoing transaction monitoring obligations"
+      ],
+      "evidence": [
+        {
+          "txn_id": "TXN-100652",
+          "timestamp": "2026-07-03 18:05",
+          "amount_ngn": 985000,
+          "note": "Kept below ₦1m; running total ₦985,000"
+        },
+        {
+          "txn_id": "TXN-100677",
+          "timestamp": "2026-07-03 21:40",
+          "amount_ngn": 940000,
+          "note": "Kept below ₦1m; running total ₦1,925,000"
+        },
+        {
+          "txn_id": "TXN-100773",
+          "timestamp": "2026-07-04 07:55",
+          "amount_ngn": 970000,
+          "note": "Kept below ₦1m; running total ₦2,895,000"
+        },
+        {
+          "txn_id": "TXN-100808",
+          "timestamp": "2026-07-04 13:20",
+          "amount_ngn": 890000,
+          "note": "Kept below ₦1m; running total ₦3,785,000"
+        },
+        {
+          "txn_id": "TXN-100862",
+          "timestamp": "2026-07-04 19:45",
+          "amount_ngn": 955000,
+          "note": "Kept below ₦1m; running total ₦4,740,000"
+        },
+        {
+          "txn_id": "TXN-100939",
+          "timestamp": "2026-07-05 08:50",
+          "amount_ngn": 880000,
+          "note": "Kept below ₦1m; running total ₦5,620,000"
+        }
+      ],
+      "justification_memo": "USR-2286 executed six outbound transfers to a single beneficiary (BEN-7731) over a 36-hour window. Every transfer sits in a narrow ₦880,000-₦985,000 band - individually unremarkable, but the cumulative ₦5,620,000 crosses the ₦5,000,000 individual currency-transaction threshold that would have triggered a mandatory CTR if moved as one payment. The tight amount banding (variance < 11%), single beneficiary, and even spacing across two calendar days match the classic structuring pattern. No matching inflow, invoice reference, or historical relationship with BEN-7731 above ₦200k/month exists in the prior 90 days. Agent confidence: HIGH. This is not clearable on behavioral history.",
+      "recommended_action": "Escalate to compliance officer. STR draft prepared for NFIU rendition within the 24-hour window. Consider temporary outbound limit pending review.",
+      "str_draft": true
+    },
+    {
+      "case_id": "CASE-2026-0142",
+      "user_id": "USR-3050",
+      "rule_id": "CBM-03",
+      "rule_name": "Cross-border profile mismatch",
+      "severity": "critical",
+      "risk_score": 87,
+      "status": "open",
+      "amount_involved_ngn": 5450000,
+      "detected_at": "2026-07-04 03:06",
+      "headline": "₦5.45m in night-time remittances to AE beneficiary; login IP in CY, new device, beneficiary name match 0.41",
+      "regulatory_basis": [
+        "CBN AML/CFT/CPF Regulations 2022 - enhanced due diligence for cross-border transfers and high-risk corridors",
+        "MLPPA 2022 s.7 - STR to NFIU within 24 hours",
+        "NDPA 2023 note: all analysis performed on anonymized identifiers (no PII ingested)"
+      ],
+      "evidence": [
+        {
+          "txn_id": "TXN-100712",
+          "timestamp": "2026-07-04 02:12",
+          "amount_ngn": 2400000,
+          "note": "Remittance to AE beneficiary; login IP CY vs KYC country NG; name match 0.41"
+        },
+        {
+          "txn_id": "TXN-100715",
+          "timestamp": "2026-07-04 02:31",
+          "amount_ngn": 1850000,
+          "note": "Remittance to AE beneficiary; login IP CY vs KYC country NG; name match 0.41"
+        },
+        {
+          "txn_id": "TXN-100722",
+          "timestamp": "2026-07-04 03:04",
+          "amount_ngn": 1200000,
+          "note": "Remittance to AE beneficiary; login IP CY vs KYC country NG; name match 0.41"
+        }
+      ],
+      "justification_memo": "USR-3050 (KYC country: Nigeria, account age 233 days) initiated three outbound international remittances totaling ₦5,450,000 between 02:12 and 03:04 local time to a newly added UAE beneficiary. Three independent risk signals coincide: (1) session IP geolocated to Cyprus while the KYC profile and all prior sessions are Nigerian; (2) the transfers were initiated from a first-seen device; (3) beneficiary account-name resolution returned a 0.41 match against the name supplied at beneficiary creation. Any one signal alone is clearable; the conjunction within a 52-minute night-time window is not. Pattern is consistent with account takeover or third-party-directed remittance. Agent confidence: HIGH.",
+      "recommended_action": "Escalate immediately. Recommend step-up re-authentication and hold on further international transfers. STR draft prepared.",
+      "str_draft": true
+    },
+    {
+      "case_id": "CASE-2026-0143",
+      "user_id": "USR-0417",
+      "rule_id": "VEL-01",
+      "rule_name": "Beneficiary velocity spike",
+      "severity": "serious",
+      "risk_score": 78,
+      "status": "open",
+      "amount_involved_ngn": 2055000,
+      "detected_at": "2026-07-05 21:26",
+      "headline": "7 transfers to 7 never-seen beneficiaries within 12 minutes, totaling ₦2.06m",
+      "regulatory_basis": [
+        "CBN AML/CFT/CPF Regulations 2022 - transaction monitoring; internal Risk Policy s.4.2 velocity limits",
+        "MLPPA 2022 s.7 - STR to NFIU within 24 hours if suspicion is confirmed"
+      ],
+      "evidence": [
+        {
+          "txn_id": "TXN-101030",
+          "timestamp": "2026-07-05 21:14",
+          "amount_ngn": 185000,
+          "note": "Transfer to new beneficiary BEN-9001 (Kuda)"
+        },
+        {
+          "txn_id": "TXN-101031",
+          "timestamp": "2026-07-05 21:16",
+          "amount_ngn": 240000,
+          "note": "Transfer to new beneficiary BEN-9101 (GTBank)"
+        },
+        {
+          "txn_id": "TXN-101032",
+          "timestamp": "2026-07-05 21:17",
+          "amount_ngn": 310000,
+          "note": "Transfer to new beneficiary BEN-9201 (Wema/ALAT)"
+        },
+        {
+          "txn_id": "TXN-101034",
+          "timestamp": "2026-07-05 21:19",
+          "amount_ngn": 150000,
+          "note": "Transfer to new beneficiary BEN-9301 (Access Bank)"
+        },
+        {
+          "txn_id": "TXN-101035",
+          "timestamp": "2026-07-05 21:21",
+          "amount_ngn": 415000,
+          "note": "Transfer to new beneficiary BEN-9401 (UBA)"
+        },
+        {
+          "txn_id": "TXN-101037",
+          "timestamp": "2026-07-05 21:23",
+          "amount_ngn": 275000,
+          "note": "Transfer to new beneficiary BEN-9501 (Moniepoint)"
+        },
+        {
+          "txn_id": "TXN-101038",
+          "timestamp": "2026-07-05 21:26",
+          "amount_ngn": 480000,
+          "note": "Transfer to new beneficiary BEN-9601 (UBA)"
+        }
+      ],
+      "justification_memo": "USR-0417 dispersed ₦2,055,000 across seven previously unknown beneficiaries at six different institutions in a 12-minute window (21:14-21:26). The account's 90-day baseline is 2.1 outbound transfers/day to a stable set of 4 beneficiaries. Rapid fan-out to many new counterparties is the primary money-mule dispersal signature. Mitigating factor: session came from the user's registered device and home IP - which weakens the account-takeover hypothesis but not the mule/proxy-payout hypothesis. Agent confidence: MEDIUM-HIGH. Human review required; not auto-clearable.",
+      "recommended_action": "Review within 24h. Request source-of-funds context from customer if unexplained. STR draft prepared in case review confirms suspicion.",
+      "str_draft": true
+    },
+    {
+      "case_id": "CASE-2026-0144",
+      "user_id": "USR-1174",
+      "rule_id": "DOR-04",
+      "rule_name": "Dormant account reactivation",
+      "severity": "serious",
+      "risk_score": 74,
+      "status": "open",
+      "amount_involved_ngn": 4200000,
+      "detected_at": "2026-07-06 14:05",
+      "headline": "Account dormant ~8 months moves ₦4.2m out in 5 hours from a first-seen device",
+      "regulatory_basis": [
+        "CBN AML/CFT/CPF Regulations 2022 - monitoring of dormant/reactivated accounts",
+        "Internal Risk Policy s.6.1 - dormancy reactivation review"
+      ],
+      "evidence": [
+        {
+          "txn_id": "TXN-101112",
+          "timestamp": "2026-07-06 09:18",
+          "amount_ngn": 1500000,
+          "note": "Transfer to BEN-4419 from new device DEV-NEW-7734"
+        },
+        {
+          "txn_id": "TXN-101134",
+          "timestamp": "2026-07-06 11:47",
+          "amount_ngn": 1500000,
+          "note": "Transfer to BEN-4419 from new device DEV-NEW-7734"
+        },
+        {
+          "txn_id": "TXN-101145",
+          "timestamp": "2026-07-06 14:02",
+          "amount_ngn": 1200000,
+          "note": "Transfer to BEN-4419 from new device DEV-NEW-7734"
+        }
+      ],
+      "justification_memo": "USR-1174 recorded no transaction activity for approximately 8 months, then moved ₦4,200,000 across three outbound transfers within 5 hours of reactivation - all to a newly added beneficiary, all from a device never previously associated with the account. Dormant-then-drain is a recognized takeover pattern; the new-device signal raises it above routine reactivation. Mitigating factor: transfers passed name-match at 0.95 and the beneficiary bank is domestic. Agent confidence: MEDIUM. Recommend contact verification before clearing.",
+      "recommended_action": "Outbound hold + customer contact verification. STR draft prepared pending outcome.",
+      "str_draft": true
+    },
+    {
+      "case_id": "CASE-2026-0139",
+      "user_id": "USR-0892",
+      "rule_id": "VEL-01",
+      "rule_name": "Beneficiary velocity spike",
+      "severity": "warning",
+      "risk_score": 12,
+      "status": "auto_cleared",
+      "amount_involved_ngn": 520000,
+      "detected_at": "2026-07-01 08:42",
+      "headline": "4 rapid transfers on salary day - all to established beneficiaries; cleared automatically",
+      "regulatory_basis": [
+        "Internal Risk Policy s.4.2 - velocity limits (behavioral exception applied)"
+      ],
+      "evidence": [
+        {
+          "txn_id": "TXN-100257",
+          "timestamp": "2026-07-01 08:30",
+          "amount_ngn": 120000,
+          "note": "Transfer to known beneficiary BEN-2201 (relationship > 12 months)"
+        },
+        {
+          "txn_id": "TXN-100260",
+          "timestamp": "2026-07-01 08:34",
+          "amount_ngn": 85000,
+          "note": "Transfer to known beneficiary BEN-2205 (relationship > 12 months)"
+        },
+        {
+          "txn_id": "TXN-100261",
+          "timestamp": "2026-07-01 08:38",
+          "amount_ngn": 65000,
+          "note": "Transfer to known beneficiary BEN-2211 (relationship > 12 months)"
+        },
+        {
+          "txn_id": "TXN-100262",
+          "timestamp": "2026-07-01 08:42",
+          "amount_ngn": 250000,
+          "note": "Transfer to known beneficiary BEN-2218 (relationship > 12 months)"
+        }
+      ],
+      "justification_memo": "Raw velocity rule fired: 4 transfers in 16 minutes. Investigation: all four beneficiaries have a 12+ month history with this account; amounts match this user's recurring first-of-month pattern (rent, family support, savings sweep) within 8% of the 6-month median; session from registered device and habitual IP. This is the account's documented payday routine, not dispersal. CLEARED automatically - justification retained for audit trail.",
+      "recommended_action": "None. False positive resolved without analyst time.",
+      "str_draft": false
+    },
+    {
+      "case_id": "CASE-2026-0140",
+      "user_id": "USR-1560",
+      "rule_id": "CTR-05",
+      "rule_name": "Currency transaction threshold (auto-filed)",
+      "severity": "warning",
+      "risk_score": 18,
+      "status": "auto_cleared",
+      "amount_involved_ngn": 6500000,
+      "detected_at": "2026-07-02 10:08",
+      "headline": "₦6.5m corporate transfer above CTR threshold - CTR auto-drafted, no suspicion indicators",
+      "regulatory_basis": [
+        "MLPPA 2022 s.2 - currency transaction reporting (₦10m corporate threshold; institution policy applies ₦5m review line)"
+      ],
+      "evidence": [
+        {
+          "txn_id": "TXN-100435",
+          "timestamp": "2026-07-02 10:06",
+          "amount_ngn": 6500000,
+          "note": "Single transfer to BEN-3308 (Stanbic IBTC), 14-month recurring supplier"
+        }
+      ],
+      "justification_memo": "Tier-3 business account transferred ₦6,500,000 to a beneficiary paid monthly for 14 consecutive months (amount within 6% of trailing average; consistent narration pattern; registered device; business hours). Threshold report drafted automatically for rendition; no suspicion indicators present. CLEARED for STR purposes - CTR paperwork generated without analyst involvement.",
+      "recommended_action": "Compliance officer to countersign auto-drafted CTR.",
+      "str_draft": false
+    }
+  ]
+}

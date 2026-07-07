@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AuditLens — Continuous Transaction Integrity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============ tokens — warm paper light ============ */
+  :root {
+    --page: #f6f5f1;
+    --card: #ffffff;
+    --card-warm: #fffef9;
+    --navy: #16233c;
+    --navy-2: #1e2f4f;
+
+    --ink: #1a1d23;
+    --ink-2: #5a6070;
+    --ink-3: #6d7280;   /* 4.8:1 on white — metadata must survive projectors */
+    --line-1: rgba(26,29,35,0.08);
+    --line-2: rgba(26,29,35,0.16);
+
+    --accent: #2a78d6;
+    --accent-deep: #1c5cab;
+    --accent-soft: #86b6ef;
+    --accent-wash: #eaf2fc;
+
+    --critical: #d03b3b;
+    --serious: #ad4e1f;  /* 5.4:1 on white at small sizes */
+    --good: #0b8a4d;
+    --warn-ink: #9a6b00;
+
+    --font-ui: "IBM Plex Sans", "Segoe UI", sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+
+    --sp-05: 4px; --sp-1: 8px; --sp-15: 12px; --sp-2: 16px;
+    --sp-3: 24px; --sp-4: 32px; --sp-6: 48px;
+
+    --radius-m: 12px; --radius-l: 16px; --radius-full: 999px;
+    --shadow-card: 0 1px 2px rgba(26,29,35,0.04), 0 6px 20px rgba(26,29,35,0.05);
+    --shadow-paper: 0 2px 4px rgba(26,29,35,0.08), 0 16px 40px rgba(26,29,35,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { color-scheme: light; }
+  body {
+    background: var(--page);
+    color: var(--ink);
+    font: 400 14px/1.55 var(--font-ui);
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
+  ::selection { background: rgba(42,120,214,0.20); }
+
+  .overline {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-3);
+  }
+
+  /* ============ app shell ============ */
+  .app { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
+
+  .sidebar {
+    display: flex; flex-direction: column; gap: var(--sp-4);
+    padding: var(--sp-3) var(--sp-2);
+    border-right: 1px solid var(--line-1);
+    position: sticky; top: 0; height: 100vh;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; padding: 0 var(--sp-1); }
+  .logomark {
+    width: 30px; height: 30px; border-radius: 9px; flex: none;
+    background: linear-gradient(135deg, #1c5cab, #3b82f6);
+    display: grid; place-items: center;
+  }
+
+  .snav { display: flex; flex-direction: column; gap: 2px; }
+  .snav button {
+    display: flex; align-items: center; gap: 10px;
+    width: 100%; padding: 9px var(--sp-15);
+    background: none; border: 0; border-radius: 10px;
+    color: var(--ink-2); font: 500 13.5px var(--font-ui);
+    cursor: pointer; text-align: left;
+    transition: background 120ms ease, color 120ms ease;
+  }
+  .snav button svg { flex: none; opacity: 0.8; }
+  .snav button:hover { background: rgba(26,29,35,0.05); color: var(--ink); }
+  .snav button:active { transform: translateY(1px); }
+  .snav button[aria-current="page"] {
+    background: var(--card); color: var(--ink);
+    box-shadow: var(--shadow-card);
+  }
+  .snav button[aria-current="page"] svg { color: var(--accent); opacity: 1; }
+  .snav .count {
+    margin-left: auto; font: 600 11px var(--font-mono);
+    background: var(--accent-wash); color: var(--accent-deep);
+    padding: 1px 7px; border-radius: var(--radius-full);
+  }
+
+  .sidebar .flex { flex: 1; }
+
+  .agent-card {
+    background: var(--card); border: 1px solid var(--line-1);
+    border-radius: var(--radius-m); padding: var(--sp-15);
+    box-shadow: var(--shadow-card);
+  }
+  .agent-card .row-line { display: flex; align-items: center; gap: var(--sp-1); font-weight: 600; font-size: 13px; }
+  .pulse {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--good); flex: none;
+    animation: pulse 2.2s ease-out infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(11,138,77,0.35); }
+    70% { box-shadow: 0 0 0 8px rgba(11,138,77,0); }
+    100% { box-shadow: 0 0 0 0 rgba(11,138,77,0); }
+  }
+  .agent-card .sub { font: 400 11px var(--font-mono); color: var(--ink-3); margin-top: 6px; line-height: 1.6; }
+
+  .user-chip { display: flex; align-items: center; gap: var(--sp-15); padding: 0 var(--sp-1); }
+  .avatar {
+    width: 32px; height: 32px; border-radius: 50%; flex: none;
+    background: var(--accent-wash); border: 1px solid var(--line-2);
+    display: grid; place-items: center;
+    font: 600 11px var(--font-mono); color: var(--accent-deep);
+  }
+  .user-chip .name { font-size: 13px; font-weight: 600; }
+  .user-chip .role { font-size: 11px; color: var(--ink-3); }
+
+  /* ============ main ============ */
+  .main { padding: var(--sp-3) var(--sp-4) var(--sp-6); max-width: 1120px; width: 100%; min-width: 0; margin: 0 auto; }
+  .main-top { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+  .main-top h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+  .main-top .spacer { flex: 1; }
+  .main-top .period { font: 500 12px var(--font-mono); color: var(--ink-3); white-space: nowrap; }
+  .badge-demo {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.05em;
+    color: var(--warn-ink); border: 1px solid rgba(154,107,0,0.4);
+    background: rgba(245,184,61,0.10);
+    padding: 4px 10px; border-radius: var(--radius-full); white-space: nowrap;
+  }
+  .screen[hidden] { display: none; }
+
+  /* ============ tiles ============ */
+  .tile {
+    background: var(--card); border: 1px solid var(--line-1);
+    border-radius: var(--radius-l); padding: var(--sp-3);
+    box-shadow: var(--shadow-card); min-width: 0;
+  }
+
+  .bento-top { display: grid; grid-template-columns: 5fr 7fr; gap: var(--sp-2); margin-bottom: var(--sp-2); }
+  .bento-right { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
+  .stats3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-2); }
+
+  /* ---------- hero tile ---------- */
+  .tile--hero {
+    background:
+      radial-gradient(420px 260px at 85% -20%, rgba(90,141,255,0.28), transparent 65%),
+      var(--navy);
+    border: 0; color: #fff;
+    display: flex; flex-direction: column;
+  }
+  .tile--hero .overline { color: rgba(255,255,255,0.55); }
+  .hero-num { font-size: 72px; font-weight: 650; letter-spacing: -0.03em; line-height: 1; margin-top: var(--sp-2); }
+  .hero-label { font-size: 15.5px; color: rgba(255,255,255,0.78); margin-top: var(--sp-05); }
+  .funnel { margin-top: var(--sp-4); }
+  .funnel-bar { display: flex; gap: 3px; height: 8px; }
+  .funnel-bar i { border-radius: var(--radius-full); }
+  .f-cleared { background: rgba(255,255,255,0.25); }
+  .f-review { background: repeating-linear-gradient(135deg, #8ab8ff 0 4px, #a9ccff 4px 8px); }
+  .funnel-labels { display: flex; justify-content: space-between; margin-top: var(--sp-1); font-size: 12px; color: rgba(255,255,255,0.6); }
+  .funnel-labels .r { color: #a9ccff; font-weight: 600; }
+  .hero-cap { margin-top: var(--sp-2); font-size: 12.5px; line-height: 1.6; color: rgba(255,255,255,0.55); max-width: 42ch; }
+
+  /* ---------- stat tiles ---------- */
+  .stat { padding: var(--sp-2) var(--sp-3); }
+  .stat-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-1); margin-top: var(--sp-1); }
+  .stat-val { font-size: 27px; font-weight: 600; letter-spacing: -0.02em; }
+  .stat-sub { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+  .stat-sub b { color: var(--good); font-weight: 600; }
+  .spark { display: flex; align-items: flex-end; gap: 3px; height: 34px; flex: none; }
+  .spark i { width: 7px; border-radius: 2px 2px 0 0; background: var(--accent-soft); }
+  .spark i.hi { background: var(--accent); }
+
+  /* ---------- rules chart panel ---------- */
+  .panel-head { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-2); }
+  .panel-head h2 { font-size: 14px; font-weight: 600; }
+  .legend { margin-left: auto; display: flex; gap: var(--sp-2); font-size: 12px; color: var(--ink-2); }
+  .legend .key { display: inline-flex; align-items: center; gap: 5px; }
+  .swatch { width: 9px; height: 9px; border-radius: 3px; }
+  .chart-row {
+    display: grid; grid-template-columns: 132px 1fr 30px; gap: var(--sp-15);
+    align-items: center; margin-bottom: var(--sp-15);
+  }
+  .chart-row:last-child { margin-bottom: 0; }
+  .rule-label { text-align: right; font-size: 12px; color: var(--ink-2); line-height: 1.25; }
+  .bar-track { display: flex; gap: 2px; height: 12px; }
+  .seg { min-width: 3px; }
+  .seg.cleared { background: var(--accent-soft); }
+  .seg.review { background: var(--accent-deep); }
+  .seg.end { border-radius: 0 4px 4px 0; }
+  .bar-total { font: 600 12px var(--font-mono); color: var(--ink); text-align: right; }
+
+  /* ---------- queue / list rows ---------- */
+  .tile--list { padding: var(--sp-3) 0 var(--sp-1); }
+  .q-head { padding: 0 var(--sp-3); display: flex; align-items: center; gap: var(--sp-1); }
+  .q-head h2 { font-size: 14px; font-weight: 600; }
+  .q-head .count { font: 500 12px var(--font-mono); color: var(--ink-3); }
+  .q-rows { border-top: 1px solid var(--line-1); margin-top: var(--sp-1); margin-bottom: var(--sp-3); }
+  .q-rows:last-child { margin-bottom: var(--sp-1); }
+  .row {
+    display: flex; align-items: center; gap: var(--sp-2);
+    width: 100%; padding: 14px var(--sp-3);
+    background: none; border: 0; border-bottom: 1px solid var(--line-1);
+    font: inherit; color: inherit; text-align: left; cursor: pointer;
+    transition: background 100ms ease;
+  }
+  .row:hover { background: #f7f9fd; }
+  .row:active { background: var(--accent-wash); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .dot--critical { background: var(--critical); }
+  .dot--serious { background: var(--serious); }
+  .check { color: var(--good); font-size: 13px; flex: none; width: 8px; text-align: center; }
+  .doc-ico { color: var(--ink-3); flex: none; }
+  .row-main { flex: 1; min-width: 0; }
+  .row-title { display: block; font-size: 14px; font-weight: 500; color: var(--ink); }
+  .row-sub { display: block; font: 400 12px var(--font-mono); color: var(--ink-3); margin-top: 3px; }
+  .row-right { text-align: right; flex: none; }
+  .row-amt { display: block; font: 600 13px var(--font-mono); color: var(--ink); }
+  .row-sev { display: block; font-size: 12px; font-weight: 500; margin-top: 3px; color: var(--ink-3); }
+  .row-sev.critical { color: var(--critical); }
+  .row-sev.serious { color: var(--serious); }
+  .row-sev.good { color: var(--good); }
+  .row-sev.warn { color: var(--warn-ink); }
+  .chev { flex: none; color: var(--ink-3); transition: transform 120ms ease; }
+  .row:hover .chev { transform: translateX(2px); color: var(--ink-2); }
+  .rows--cleared .row-title { color: var(--ink-2); font-weight: 400; }
+  .more-note { font-size: 12px; color: var(--ink-3); padding: var(--sp-05) var(--sp-3) var(--sp-15); }
+  .list-foot { padding: var(--sp-15) var(--sp-3) var(--sp-1); }
+  #screen-overview .q-rows { margin-bottom: 0; }
+  .link-btn {
+    background: none; border: 0; padding: 0; cursor: pointer;
+    font: 600 12.5px var(--font-ui); color: var(--accent-deep);
+  }
+  .link-btn:hover { text-decoration: underline; }
+
+  /* ---------- rules screen ---------- */
+  .rule-row {
+    display: flex; gap: var(--sp-3); align-items: flex-start;
+    padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--line-1);
+  }
+  .rule-row:last-child { border-bottom: 0; }
+  .rule-id {
+    font: 600 11px var(--font-mono); color: var(--accent-deep);
+    background: var(--accent-wash); border-radius: 6px; padding: 3px 8px;
+    flex: none; margin-top: 2px;
+  }
+  .rule-body { flex: 1; min-width: 0; }
+  .rule-name { font-size: 14px; font-weight: 600; }
+  .rule-desc { font-size: 12.5px; color: var(--ink-2); margin-top: 3px; max-width: 74ch; line-height: 1.6; }
+  .rule-stats { text-align: right; flex: none; }
+  .rule-stats .n { display: block; font: 600 13px var(--font-mono); }
+  .rule-stats .s { display: block; font-size: 11.5px; color: var(--ink-3); margin-top: 3px; }
+  .rule-active { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; color: var(--good); margin-top: 6px; }
+  .rule-active::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--good); }
+
+  footer { margin-top: var(--sp-3); font-size: 12px; color: var(--ink-3); }
+
+  /* ---------- empty state ---------- */
+  .empty { padding: var(--sp-6) var(--sp-3); text-align: center; }
+  .empty .big { font-size: 15px; font-weight: 600; margin-top: var(--sp-15); }
+  .empty p { font-size: 13px; color: var(--ink-2); margin: var(--sp-05) auto 0; max-width: 52ch; }
+
+  /* ---------- tooltip ---------- */
+  #tip {
+    position: fixed; z-index: 600; pointer-events: none; display: none;
+    background: var(--navy); color: #fff;
+    border-radius: 8px; padding: 8px 12px; font-size: 12px; line-height: 1.5;
+    box-shadow: 0 8px 24px rgba(26,29,35,0.25); max-width: 280px;
+  }
+
+  /* ---------- queue sort ---------- */
+  .q-sort {
+    margin-left: auto; display: inline-flex; align-items: center; gap: var(--sp-1);
+    font-size: 12px; color: var(--ink-2);
+  }
+  .q-sort select {
+    font: 500 12.5px var(--font-ui); color: var(--ink);
+    background: var(--card); border: 1px solid var(--line-2);
+    border-radius: 8px; padding: 4px 8px; cursor: pointer;
+  }
+  .q-sort select:hover { border-color: var(--ink-3); }
+
+  /* ============ case screen ============ */
+  .back {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: none; border: 0; padding: 0; cursor: pointer;
+    font: 500 13px var(--font-ui); color: var(--ink-2);
+    margin-bottom: var(--sp-2);
+  }
+  .back:hover { color: var(--ink); }
+
+  .case-head-card {
+    background: var(--card); border: 1px solid var(--line-1);
+    border-radius: var(--radius-l); padding: var(--sp-3);
+    box-shadow: var(--shadow-card);
+    display: flex; gap: var(--sp-4); align-items: flex-start;
+    margin-bottom: var(--sp-2);
+  }
+  .case-head-card .titles { flex: 1; min-width: 0; }
+  .case-head-card h2 { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; margin-top: var(--sp-1); }
+  .case-meta { margin-top: var(--sp-1); font-size: 13px; color: var(--ink-3); }
+  .case-meta .sev { font-weight: 600; }
+  .case-meta .sev.critical { color: var(--critical); }
+  .case-meta .sev.serious { color: var(--serious); }
+  .case-meta .sev.good { color: var(--good); }
+  .case-headline { margin-top: var(--sp-15); font-size: 14.5px; color: var(--ink-2); max-width: 70ch; line-height: 1.6; }
+  .donut-wrap { text-align: center; flex: none; }
+  .donut-wrap .cap { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); margin-top: var(--sp-05); }
+  .donut-num { fill: var(--ink); font: 600 17px var(--font-mono); }
+
+  .case-cols { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); align-items: start; }
+  @media (max-width: 920px) { .case-cols { grid-template-columns: 1fr; } }
+  .case-card {
+    background: var(--card); border: 1px solid var(--line-1);
+    border-radius: var(--radius-l); padding: var(--sp-3);
+    box-shadow: var(--shadow-card);
+  }
+
+  .sec-title {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--ink-3); margin-bottom: var(--sp-15);
+  }
+  .memo { color: var(--ink-2); font-size: 13.5px; line-height: 1.7; }
+  .evi { margin-top: var(--sp-3); }
+  .evi td { font-size: 12.5px; }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3);
+    padding: 0 var(--sp-1) var(--sp-1) 0; border-bottom: 1px solid var(--line-2);
+  }
+  td { padding: var(--sp-1) var(--sp-1) var(--sp-1) 0; border-bottom: 1px solid var(--line-1); font-size: 12.5px; vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.num { font-family: var(--font-mono); color: var(--ink-2); white-space: nowrap; }
+  td.note { color: var(--ink-3); }
+
+  .action {
+    margin-top: var(--sp-3); padding: var(--sp-15) var(--sp-2);
+    border-left: 3px solid var(--accent); background: var(--accent-wash);
+    border-radius: 0 8px 8px 0;
+    font-size: 13px; color: var(--ink-2); line-height: 1.6;
+  }
+  .action b { color: var(--ink); }
+
+  /* ---------- STR paper ---------- */
+  .paper {
+    position: relative; overflow: hidden;
+    background: var(--card-warm); color: var(--ink);
+    border: 1px solid var(--line-2);
+    border-radius: var(--radius-m); padding: var(--sp-3);
+    box-shadow: var(--shadow-paper);
+  }
+  .paper::before {
+    content: "DRAFT"; position: absolute; top: 42%; left: 6%;
+    font: 700 76px var(--font-ui); letter-spacing: 0.18em;
+    color: rgba(26,29,35,0.05); transform: rotate(-22deg); pointer-events: none;
+  }
+  .paper-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-15); }
+  .paper-head .tag {
+    font: 700 11px var(--font-mono); letter-spacing: 0.1em;
+    color: #b3261e; border: 1px solid currentColor; border-radius: 3px; padding: 3px 8px;
+  }
+  .btn-copy {
+    background: var(--navy); color: #fff; border: 0;
+    border-radius: 8px; padding: 7px 14px;
+    font: 600 12.5px var(--font-ui); cursor: pointer;
+    transition: background 120ms ease, transform 80ms ease;
+  }
+  .btn-copy:hover { background: var(--navy-2); }
+  .btn-copy:active { transform: translateY(1px); }
+  .paper pre {
+    position: relative; white-space: pre-wrap;
+    font: 400 11.5px/1.65 var(--font-mono); color: var(--ink);
+  }
+  .paper .none { color: var(--ink-3); font-size: 13px; position: relative; }
+
+  @media (max-width: 1040px) {
+    .bento-top { grid-template-columns: 1fr; }
+    .hero-num { font-size: 56px; }
+  }
+  @media (max-width: 880px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar {
+      position: static; height: auto;
+      flex-direction: row; align-items: center; gap: var(--sp-2);
+      border-right: 0; border-bottom: 1px solid var(--line-1);
+      padding: var(--sp-15) var(--sp-2); overflow-x: auto;
+    }
+    .sidebar .flex, .agent-card, .user-chip { display: none; }
+    .snav { flex-direction: row; gap: var(--sp-05); }
+    .snav button { white-space: nowrap; padding: 8px 10px; }
+    .stats3 { grid-template-columns: 1fr; }
+    .case-head-card { flex-direction: column-reverse; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pulse { animation: none; }
+    .row, .chev, .snav button, .btn-copy { transition: none; }
+  }
+
+  @media print {
+    body { background: #fff; }
+    .sidebar, .badge-demo, .period, .back, .btn-copy, footer { display: none !important; }
+    .app { display: block; }
+    .main { max-width: none; padding: 0; }
+    .tile, .case-head-card { box-shadow: none; }
+    .case-cols { display: block; }
+    .case-card { display: none; }               /* printing a case = the report itself */
+    .case-head-card { border: 0; padding: 0 0 var(--sp-2); }
+    .paper { box-shadow: none; border: 1px solid #999; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logomark" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+          <circle cx="8" cy="8" r="5.2" stroke="#fff" stroke-width="1.8"/>
+          <path d="M12 12 L16 16" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M5.6 8.2 L7.4 10 L10.6 6.2" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      AuditLens
+    </div>
+
+    <nav class="snav" aria-label="Main">
+      <button type="button" data-nav="overview" aria-current="page">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.75" y="1.75" width="5" height="5" rx="1.2"/><rect x="9.25" y="1.75" width="5" height="5" rx="1.2"/><rect x="1.75" y="9.25" width="5" height="5" rx="1.2"/><rect x="9.25" y="9.25" width="5" height="5" rx="1.2"/></svg>
+        Overview
+      </button>
+      <button type="button" data-nav="queue">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h7"/></svg>
+        Case queue <span class="count" id="navCount"></span>
+      </button>
+      <button type="button" data-nav="reports">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 1.75h5.5L13 5.25v9H4v-12.5Z"/><path d="M9.5 1.75v3.5H13M6 8.5h4M6 11h4"/></svg>
+        Reports
+      </button>
+      <button type="button" data-nav="rules">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M8 1.8 13.2 3.7V7.6c0 3.3-2.3 5.4-5.2 6.4-2.9-1-5.2-3.1-5.2-6.4V3.7L8 1.8Z"/></svg>
+        Rules &amp; policies
+      </button>
+    </nav>
+
+    <div class="flex"></div>
+
+    <div class="agent-card">
+      <div class="row-line"><span class="pulse" aria-hidden="true"></span>Agent online</div>
+      <div class="sub">Last sweep 2 min ago<br>1,224 txns · 5 rules · 0 backlog</div>
+    </div>
+
+    <div class="user-chip">
+      <div class="avatar" aria-hidden="true">DF</div>
+      <div><div class="name">Demo Fintech Ltd</div><div class="role">Compliance workspace</div></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="main-top">
+      <h1 id="pageTitle">Compliance overview</h1>
+      <div class="spacer"></div>
+      <span class="period">JUN 30 – JUL 6, 2026 · UTC+1</span>
+      <span class="badge-demo">DEMO · SYNTHETIC DATA</span>
+    </div>
+
+    <!-- ============ OVERVIEW ============ -->
+    <section class="screen" id="screen-overview">
+      <div class="bento-top">
+        <div class="tile tile--hero">
+          <div class="overline">Needs your review · this week</div>
+          <div class="hero-num" id="heroNum"></div>
+          <div class="hero-label" id="heroLabel"></div>
+          <div class="funnel" aria-label="Alert resolution">
+            <div class="funnel-bar" id="funnelBar"></div>
+            <div class="funnel-labels">
+              <span id="funnelLeft"></span>
+              <span class="r" id="funnelRight"></span>
+            </div>
+          </div>
+          <p class="hero-cap" id="heroCap"></p>
+        </div>
+
+        <div class="bento-right">
+          <div class="stats3">
+            <div class="tile stat">
+              <div class="overline">Audited</div>
+              <div class="stat-row">
+                <span class="stat-val" id="statTxns"></span>
+                <span class="spark" id="sparkTxns" aria-hidden="true"></span>
+              </div>
+              <div class="stat-sub">transactions this week</div>
+            </div>
+            <div class="tile stat">
+              <div class="overline">Auto-cleared</div>
+              <div class="stat-row">
+                <span class="stat-val" id="statCleared"></span>
+                <span id="miniDonut" aria-hidden="true"></span>
+              </div>
+              <div class="stat-sub"><b id="clearedPct"></b> of all alerts</div>
+            </div>
+            <div class="tile stat">
+              <div class="overline">Hours saved</div>
+              <div class="stat-row">
+                <span class="stat-val" id="statHours"></span>
+                <span class="spark" id="sparkHours" aria-hidden="true"></span>
+              </div>
+              <div class="stat-sub">analyst time (est.)</div>
+            </div>
+          </div>
+
+          <div class="tile">
+            <div class="panel-head">
+              <h2>Alerts by rule</h2>
+              <div class="legend">
+                <span class="key"><span class="swatch" style="background:var(--accent-soft)"></span>Auto-cleared</span>
+                <span class="key"><span class="swatch" style="background:var(--accent-deep)"></span>Needs review</span>
+              </div>
+            </div>
+            <div id="chart"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tile tile--list">
+        <div class="q-head"><h2>Needs review</h2><span class="count" id="openCount"></span></div>
+        <div class="q-rows" id="openRows"></div>
+        <div class="list-foot">
+          <button class="link-btn" type="button" data-nav="queue">View the full case queue →</button>
+        </div>
+      </div>
+
+      <footer>All records are synthetic and anonymized. Draft reports require sign-off by a human compliance officer before rendition to the NFIU.</footer>
+    </section>
+
+    <!-- ============ CASE QUEUE ============ -->
+    <section class="screen" id="screen-queue" hidden>
+      <div class="tile tile--list">
+        <div class="q-head">
+          <h2>Needs review</h2><span class="count" id="openCount2"></span>
+          <label class="q-sort">Sort by
+            <select id="sortSel">
+              <option value="risk">Risk</option>
+              <option value="newest">Newest</option>
+              <option value="amount">Amount</option>
+            </select>
+          </label>
+        </div>
+        <div class="q-rows" id="openRows2"></div>
+        <div class="q-head"><h2>Auto-cleared by the agent</h2><span class="count" id="clearedCount"></span></div>
+        <div class="q-rows rows--cleared" id="clearedRows"></div>
+        <p class="more-note" id="moreNote"></p>
+      </div>
+    </section>
+
+    <!-- ============ REPORTS ============ -->
+    <section class="screen" id="screen-reports" hidden>
+      <div class="tile tile--list">
+        <div class="q-head"><h2>Regulatory reports</h2><span class="count" id="reportCount"></span></div>
+        <div class="q-rows" id="reportRows"></div>
+        <p class="more-note">Drafts are generated by the agent the moment a case is escalated. Nothing is submitted without a compliance officer's sign-off.</p>
+      </div>
+    </section>
+
+    <!-- ============ RULES ============ -->
+    <section class="screen" id="screen-rules" hidden>
+      <div class="tile tile--list">
+        <div class="q-head"><h2>Detection rules</h2><span class="count">5 active</span></div>
+        <div class="q-rows" id="ruleRows"></div>
+        <p class="more-note">Rules are versioned and mapped to MLPPA 2022 and CBN AML/CFT/CPF Regulations 2022. The agent cites the exact rule and statute in every case file.</p>
+      </div>
+    </section>
+
+    <!-- ============ CASE FILE ============ -->
+    <section class="screen" id="screen-case" hidden>
+      <button class="back" id="backBtn" type="button">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 3 4.5 7l4 4"/></svg>
+        <span id="backLabel">All cases</span>
+      </button>
+      <div id="caseView"></div>
+    </section>
+  </div>
+</div>
+
+<div id="tip" role="tooltip"></div>
+
+<script id="audit-data" type="application/json">__AUDIT_DATA__</script>
+<script>
+(function () {
+  const DATA = JSON.parse(document.getElementById("audit-data").textContent);
+  const $ = (s, el) => (el || document).querySelector(s);
+  const $$ = (s, el) => [...(el || document).querySelectorAll(s)];
+
+  const naira = n => "₦" + n.toLocaleString("en-NG");
+  const nairaCompact = n =>
+    n >= 1e6 ? "₦" + (n / 1e6).toFixed(2).replace(/\.?0+$/, "") + "m"
+             : "₦" + Math.round(n / 1e3) + "k";
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const prettyTime = ts => {
+    const [d, t] = ts.split(" ");
+    const [, m, day] = d.split("-");
+    return `${MONTHS[+m - 1]} ${+day}, ${t}`;
+  };
+
+  const s = DATA.summary;
+  const cases = [...DATA.cases].sort((a, b) => b.risk_score - a.risk_score);
+  const open = cases.filter(c => c.status !== "auto_cleared");
+  const cleared = cases.filter(c => c.status === "auto_cleared");
+
+  /* ============ screens & navigation ============ */
+  const TITLES = {
+    overview: "Compliance overview",
+    queue: "Case queue",
+    reports: "Reports",
+    rules: "Rules & policies",
+    case: "Case file",
+  };
+  const BACK_LABELS = { overview: "Overview", queue: "All cases", reports: "Reports", rules: "Rules" };
+  let currentScreen = "overview";
+  let caseOrigin = "queue";
+
+  function showScreen(name) {
+    $$(".screen").forEach(el => { el.hidden = el.id !== "screen-" + name; });
+    $$(".snav button[data-nav]").forEach(b => {
+      const active = b.dataset.nav === (name === "case" ? caseOrigin : name);
+      if (active) b.setAttribute("aria-current", "page");
+      else b.removeAttribute("aria-current");
+    });
+    $("#pageTitle").textContent = TITLES[name];
+    if (name !== "case") currentScreen = name;
+    window.scrollTo(0, 0);
+  }
+
+  document.addEventListener("click", e => {
+    const nav = e.target.closest("[data-nav]");
+    if (nav) { showScreen(nav.dataset.nav); return; }
+    const row = e.target.closest(".row[data-case]");
+    if (row) openCase(row.dataset.case);
+  });
+
+  /* ============ overview ============ */
+  $("#heroNum").textContent = s.cases_for_review;
+  $("#heroLabel").textContent = `cases need your review — out of ${s.alerts_raised} alerts`;
+  $("#funnelBar").innerHTML =
+    `<i class="f-cleared" style="flex:${s.auto_cleared}"></i><i class="f-review" style="flex:${s.cases_for_review}"></i>`;
+  $("#funnelLeft").textContent = `${s.auto_cleared} auto-cleared`;
+  $("#funnelRight").textContent = `${s.cases_for_review} for your review`;
+  $("#heroCap").textContent =
+    `The agent investigated every alert and cleared ${s.auto_cleared} automatically — each with a written justification retained for audit.`;
+
+  $("#statTxns").textContent = s.transactions_audited.toLocaleString();
+  const dailyTxns = [171, 168, 180, 175, 182, 174, 174];
+  const dMax = Math.max(...dailyTxns);
+  $("#sparkTxns").innerHTML = dailyTxns.map((v, i) =>
+    `<i class="${i === dailyTxns.length - 1 ? "hi" : ""}" style="height:${Math.round(12 + (v / dMax) * 20)}px"></i>`).join("");
+
+  $("#statCleared").textContent = s.auto_cleared;
+  const pct = Math.round(s.auto_clear_rate * 100);
+  $("#clearedPct").textContent = pct + "%";
+  (function miniDonut() {
+    const r = 15, c = 2 * Math.PI * r, off = c * (1 - pct / 100);
+    $("#miniDonut").innerHTML = `<svg width="40" height="40" viewBox="0 0 40 40">
+      <circle cx="20" cy="20" r="${r}" fill="none" stroke="#dfe9f8" stroke-width="5"/>
+      <circle cx="20" cy="20" r="${r}" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round"
+        stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 20 20)"/>
+    </svg>`;
+  })();
+
+  $("#statHours").textContent = "≈" + Math.round(s.analyst_hours_saved_est) + "h";
+  const dailyHours = [3.4, 3.1, 2.7, 3.9, 3.5, 3.2, 3.0]; // sums ≈ 22.8
+  const hMax = Math.max(...dailyHours);
+  $("#sparkHours").innerHTML = dailyHours.map((v, i) =>
+    `<i class="${i === dailyHours.length - 1 ? "hi" : ""}" style="height:${Math.round(12 + (v / hMax) * 20)}px"></i>`).join("");
+
+  const SHORT_NAMES = {
+    "VEL-01": "Velocity spike",
+    "STR-02": "Structuring",
+    "CBM-03": "Cross-border mismatch",
+    "DOR-04": "Dormant reactivation",
+    "CTR-05": "CTR threshold",
+  };
+  const rules = DATA.alerts_by_rule;
+  const maxRaw = Math.max(...rules.map(r => r.raw));
+  $("#chart").innerHTML = rules.map(r => {
+    const wCleared = (r.auto_cleared / maxRaw) * 100;
+    const wReview = (r.for_review / maxRaw) * 100;
+    const segs = [];
+    if (r.auto_cleared > 0)
+      segs.push(`<div class="seg cleared ${r.for_review === 0 ? "end" : ""}" style="width:${wCleared}%"></div>`);
+    if (r.for_review > 0)
+      segs.push(`<div class="seg review end" style="width:${wReview}%"></div>`);
+    const tipText = `${r.rule_name}: ${r.raw} alerts — ${r.auto_cleared} auto-cleared, ${r.for_review} for review`;
+    return `
+      <div class="chart-row" data-tip="${tipText}" tabindex="0" role="img" aria-label="${tipText}">
+        <div class="rule-label">${SHORT_NAMES[r.rule_id] || r.rule_name}</div>
+        <div class="bar-track">${segs.join("")}</div>
+        <div class="bar-total">${r.raw}</div>
+      </div>`;
+  }).join("");
+
+  /* ---------- tooltip (hover + keyboard focus) ---------- */
+  const tip = $("#tip");
+  function placeTip(x, y) {
+    tip.style.left = Math.min(x, innerWidth - tip.offsetWidth - 12) + "px";
+    tip.style.top = Math.min(y, innerHeight - tip.offsetHeight - 12) + "px";
+  }
+  document.addEventListener("mousemove", e => {
+    const t = e.target.closest("[data-tip]");
+    if (!t) { tip.style.display = "none"; return; }
+    tip.textContent = t.dataset.tip;
+    tip.style.display = "block";
+    placeTip(e.clientX + 14, e.clientY + 14);
+  });
+  document.addEventListener("focusin", e => {
+    const t = e.target.closest("[data-tip]");
+    if (!t) return;
+    const r = t.getBoundingClientRect();
+    tip.textContent = t.dataset.tip;
+    tip.style.display = "block";
+    placeTip(r.left + 24, r.bottom + 8);
+  });
+  document.addEventListener("focusout", () => { tip.style.display = "none"; });
+
+  /* ============ queue rows ============ */
+  const chev = `<svg class="chev" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 3l4 4-4 4"/></svg>`;
+
+  function rowHTML(c) {
+    const isCleared = c.status === "auto_cleared";
+    const lead = isCleared
+      ? `<span class="check" aria-hidden="true">✓</span>`
+      : `<span class="dot dot--${c.severity}" aria-hidden="true"></span>`;
+    const sev = isCleared
+      ? `<span class="row-sev good">Cleared automatically</span>`
+      : `<span class="row-sev ${c.severity}">${c.severity === "critical" ? "Critical" : "Serious"} · risk ${c.risk_score}</span>`;
+    return `
+      <button class="row" type="button" data-case="${c.case_id}">
+        ${lead}
+        <span class="row-main">
+          <span class="row-title">${c.rule_name}</span>
+          <span class="row-sub">${c.case_id} · ${c.user_id} · ${prettyTime(c.detected_at)}</span>
+        </span>
+        <span class="row-right">
+          <span class="row-amt">${nairaCompact(c.amount_involved_ngn)}</span>
+          ${sev}
+        </span>
+        ${chev}
+      </button>`;
+  }
+
+  const EMPTY_STATE = `
+    <div class="empty">
+      <svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+        <circle cx="18" cy="18" r="16" stroke="var(--good)" stroke-width="2"/>
+        <path d="M11.5 18.5l4.5 4.5 8.5-9" stroke="var(--good)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="big">Nothing needs you</div>
+      <p>The agent investigated every alert this week and cleared them all — each clearance has a written justification retained for audit.</p>
+    </div>`;
+
+  const openHTML = open.length ? open.map(rowHTML).join("") : EMPTY_STATE;
+  $("#navCount").textContent = open.length;
+  $("#openCount").textContent = open.length;
+  $("#openRows").innerHTML = openHTML;
+  $("#clearedCount").textContent = s.auto_cleared;
+  $("#moreNote").textContent =
+    `+ ${s.auto_cleared - cleared.length} more cleared alerts, each with its justification retained for audit.`;
+
+  /* queue screen: sortable */
+  const SORTS = {
+    risk: (a, b) => b.risk_score - a.risk_score,
+    newest: (a, b) => b.detected_at.localeCompare(a.detected_at),
+    amount: (a, b) => b.amount_involved_ngn - a.amount_involved_ngn,
+  };
+  function renderQueue(mode) {
+    const fn = SORTS[mode] || SORTS.risk;
+    const o = [...open].sort(fn);
+    const cl = [...cleared].sort(fn);
+    $("#openCount2").textContent = open.length;
+    $("#openRows2").innerHTML = o.length ? o.map(rowHTML).join("") : EMPTY_STATE;
+    $("#clearedRows").innerHTML = cl.map(rowHTML).join("");
+  }
+  renderQueue("risk");
+  $("#sortSel").addEventListener("change", e => renderQueue(e.target.value));
+
+  /* ============ reports screen ============ */
+  const docIco = `<svg class="doc-ico" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 1.75h5.5L13 5.25v9H4v-12.5Z"/><path d="M9.5 1.75v3.5H13M6 8.5h4M6 11h4"/></svg>`;
+
+  function reportRowHTML(c) {
+    const isCTR = !c.str_draft;
+    const title = isCTR
+      ? "Currency Transaction Report — auto-filed"
+      : "Suspicious Transaction Report — draft";
+    const status = isCTR
+      ? `<span class="row-sev good">Auto-drafted · countersign</span>`
+      : `<span class="row-sev warn">Awaiting officer sign-off</span>`;
+    return `
+      <button class="row" type="button" data-case="${c.case_id}">
+        ${docIco}
+        <span class="row-main">
+          <span class="row-title">${title}</span>
+          <span class="row-sub">${c.case_id} · ${c.rule_name} · ${c.user_id}</span>
+        </span>
+        <span class="row-right">
+          <span class="row-amt">${nairaCompact(c.amount_involved_ngn)}</span>
+          ${status}
+        </span>
+        ${chev}
+      </button>`;
+  }
+
+  const reportCases = [...cases.filter(c => c.str_draft), ...cases.filter(c => c.rule_id === "CTR-05")];
+  $("#reportCount").textContent = reportCases.length;
+  $("#reportRows").innerHTML = reportCases.map(reportRowHTML).join("");
+
+  /* ============ rules screen ============ */
+  const RULE_META = {
+    "VEL-01": {
+      desc: "Flags 4+ outbound transfers to first-seen beneficiaries within 30 minutes. Auto-clears only when the pattern matches the account's documented recurring behavior on a known device and IP.",
+    },
+    "STR-02": {
+      desc: "Multiple transfers to one beneficiary within 72 hours, each below ₦1m, cumulatively exceeding the ₦5m individual CTR threshold (MLPPA 2022). Never auto-cleared.",
+    },
+    "CBM-03": {
+      desc: "International transfers where two or more risk signals coincide: session IP country differs from KYC country, first-seen device, beneficiary name-match below 0.60, or night-time initiation.",
+    },
+    "DOR-04": {
+      desc: "No account activity for 180+ days followed by cumulative outbound above ₦1m within 24 hours. Weighted higher for new beneficiaries or first-seen devices.",
+    },
+    "CTR-05": {
+      desc: "Single transactions at or above ₦5m (individual) or ₦10m (corporate). The CTR is drafted automatically; the case escalates only if suspicion indicators are also present.",
+    },
+  };
+  $("#ruleRows").innerHTML = rules.map(r => `
+    <div class="rule-row">
+      <span class="rule-id">${r.rule_id}</span>
+      <div class="rule-body">
+        <div class="rule-name">${r.rule_name}</div>
+        <div class="rule-desc">${(RULE_META[r.rule_id] || {}).desc || ""}</div>
+      </div>
+      <div class="rule-stats">
+        <span class="n">${r.raw} alerts</span>
+        <span class="s">${r.auto_cleared} auto-cleared · ${r.for_review} for review</span>
+        <span class="rule-active">Active</span>
+      </div>
+    </div>`).join("");
+
+  /* ============ STR draft text ============ */
+  function wrap(text, indent) {
+    const width = 56 - indent.length;
+    const words = text.split(/\s+/);
+    const lines = [];
+    let cur = "";
+    for (const w of words) {
+      if (cur && (cur + " " + w).length > width) { lines.push(cur); cur = w; }
+      else cur = cur ? cur + " " + w : w;
+    }
+    if (cur) lines.push(cur);
+    return lines.map(l => indent + l).join("\n");
+  }
+
+  function strText(c) {
+    const rows = c.evidence.map(e =>
+      `   ${e.txn_id}  ${e.timestamp}  ${naira(e.amount_ngn).padStart(11)}`).join("\n");
+    return (
+`SUSPICIOUS TRANSACTION REPORT — DRAFT
+Auto-generated by AuditLens agent v0.9
+
+To: Nigerian Financial Intelligence Unit (NFIU)
+Reporting institution: [Demo Fintech Ltd]
+Report reference: ${c.case_id}
+Statutory basis: MLPPA 2022 s.7 (24h rendition)
+Date of suspicion: ${c.detected_at}
+
+1. SUBJECT
+${wrap(`Customer identifier: ${c.user_id} (anonymized — PII resolved at institution)`, "   ")}
+${wrap(`Triggering rule: ${c.rule_id} — ${c.rule_name}`, "   ")}
+${wrap(`Agent risk score: ${c.risk_score}/100 (${c.severity.toUpperCase()})`, "   ")}
+
+2. TRANSACTIONS
+${rows}
+   Total amount involved: ${naira(c.amount_involved_ngn)}
+
+3. GROUNDS FOR SUSPICION
+${wrap(c.justification_memo, "   ")}
+
+4. REGULATORY BASIS
+${c.regulatory_basis.map(r => wrap("• " + r, "   ")).join("\n")}
+
+5. ACTION TAKEN BY INSTITUTION
+${wrap(c.recommended_action, "   ")}
+
+Prepared by: AuditLens agent v0.9 — DRAFT
+Reviewed by: ___________________ (Compliance Officer)
+${wrap("NOTE: This draft requires human review and sign-off before rendition.", "")}`
+    );
+  }
+
+  /* ============ risk donut ============ */
+  function donut(score, color) {
+    const r = 26, c = 2 * Math.PI * r, off = c * (1 - score / 100);
+    return `<svg width="68" height="68" viewBox="0 0 68 68" role="img" aria-label="Risk score ${score} of 100">
+      <circle cx="34" cy="34" r="${r}" fill="none" stroke="#edeff3" stroke-width="6"/>
+      <circle cx="34" cy="34" r="${r}" fill="none" stroke="${color}" stroke-width="6" stroke-linecap="round"
+        stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 34 34)"/>
+      <text x="34" y="40" text-anchor="middle" class="donut-num">${score}</text>
+    </svg>`;
+  }
+
+  /* ============ case screen ============ */
+  const SEV_COLOR = { critical: "var(--critical)", serious: "var(--serious)", warning: "var(--warn-ink)" };
+
+  function renderCase(c) {
+    const isCleared = c.status === "auto_cleared";
+    const sevLabel = isCleared
+      ? `<span class="sev good">Cleared automatically — no analyst time spent</span>`
+      : `<span class="sev ${c.severity}">${c.severity === "critical" ? "Critical" : "Serious"} · open</span>`;
+    const donutColor = isCleared ? "var(--good)" : SEV_COLOR[c.severity];
+    const evi = c.evidence.map(e => `
+      <tr>
+        <td class="num">${e.txn_id}</td>
+        <td class="num">${e.timestamp}</td>
+        <td class="num">${naira(e.amount_ngn)}</td>
+        <td class="note">${e.note}</td>
+      </tr>`).join("");
+    const doc = c.str_draft
+      ? `<div class="paper">
+           <div class="paper-head">
+             <span class="tag">STR — NFIU RENDITION</span>
+             <button class="btn-copy" id="copyBtn" type="button">Copy report</button>
+           </div>
+           <pre id="strText">${strText(c).replace(/&/g, "&amp;").replace(/</g, "&lt;")}</pre>
+         </div>`
+      : `<div class="paper"><div class="none">No report required — the agent cleared this alert automatically. The justification (left) is retained as the audit trail.</div></div>`;
+
+    $("#caseView").innerHTML = `
+      <div class="case-head-card">
+        <div class="titles">
+          <div class="overline">${c.case_id} · ${c.rule_id} · detected ${prettyTime(c.detected_at)}</div>
+          <h2 id="caseTitle" tabindex="-1">${c.rule_name}</h2>
+          <div class="case-meta">${sevLabel} &nbsp;·&nbsp; ${c.user_id} &nbsp;·&nbsp; ${naira(c.amount_involved_ngn)} involved</div>
+          <p class="case-headline">${c.headline}</p>
+        </div>
+        <div class="donut-wrap">${donut(c.risk_score, donutColor)}<div class="cap">Risk score</div></div>
+      </div>
+      <div class="case-cols">
+        <div class="case-card">
+          <div class="sec-title">What the agent found</div>
+          <p class="memo">${c.justification_memo}</p>
+          <div class="evi">
+            <div class="sec-title">Evidence · ${c.evidence.length} transactions</div>
+            <table>
+              <thead><tr><th>Txn</th><th>Time</th><th>Amount</th><th>Signal</th></tr></thead>
+              <tbody>${evi}</tbody>
+            </table>
+          </div>
+          <div class="action"><b>Recommended action:</b> ${c.recommended_action}</div>
+        </div>
+        <div>
+          ${doc}
+        </div>
+      </div>`;
+
+    const btn = $("#copyBtn");
+    if (btn) btn.addEventListener("click", () => {
+      const txt = $("#strText").textContent;
+      (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject())
+        .then(() => { btn.textContent = "Copied ✓"; })
+        .catch(() => {
+          const ta = document.createElement("textarea");
+          ta.value = txt; document.body.appendChild(ta); ta.select();
+          document.execCommand("copy"); ta.remove();
+          btn.textContent = "Copied ✓";
+        });
+      setTimeout(() => { btn.textContent = "Copy report"; }, 1800);
+    });
+  }
+
+  function openCase(id) {
+    const c = cases.find(x => x.case_id === id);
+    if (!c) return;
+    caseOrigin = currentScreen === "case" ? caseOrigin : currentScreen;
+    if (caseOrigin === "case") caseOrigin = "queue";
+    renderCase(c);
+    $("#backLabel").textContent = BACK_LABELS[caseOrigin] || "Back";
+    showScreen("case");
+    const title = $("#caseTitle");
+    if (title) title.focus({ preventScroll: true });
+  }
+
+  $("#backBtn").addEventListener("click", () => showScreen(caseOrigin));
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && !$("#screen-case").hidden) showScreen(caseOrigin);
+  });
+
+  /* deep links for screenshots: ?screen=reports or ?case=CASE-2026-0141 */
+  const params = new URLSearchParams(location.search);
+  if (params.get("case")) openCase(params.get("case"));
+  else if (params.get("screen")) showScreen(params.get("screen"));
+})();
+</script>
+</body>
+</html>
