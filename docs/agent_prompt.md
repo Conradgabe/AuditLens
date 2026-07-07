@@ -70,4 +70,5 @@ Rules of engagement:
 - Pre-filter the CSV to rows for USR-2286, USR-0417, USR-3050, USR-1174, USR-0892
   plus ~50 random rows — the planted patterns will be found and the payday false
   positive will be cleared, which is the differentiating moment.
-- `python -c "import csv; rows=[r for r in csv.reader(open('transactions.csv'))]; users={'USR-2286','USR-0417','USR-3050','USR-1174','USR-0892'}; print('\n'.join(','.join(r) for i,r in enumerate(rows) if i==0 or r[2] in users or i%20==0))" > demo_slice.csv`
+- From the repo root:
+  `python -c "import csv; rows=[r for r in csv.reader(open('data/transactions.csv'))]; users={'USR-2286','USR-0417','USR-3050','USR-1174','USR-0892'}; print('\n'.join(','.join(r) for i,r in enumerate(rows) if i==0 or r[2] in users or i%20==0))" > demo_slice.csv`

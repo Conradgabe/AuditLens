@@ -69,20 +69,21 @@ back gracefully offline).
 
 | Path | What it is |
 |---|---|
-| `dashboard.html` | The demo — open it directly in a browser. |
-| `generate_data.py` | Seeded generator for the synthetic dataset and agent findings (`python generate_data.py`). |
-| `transactions.csv` | 1,224 synthetic, anonymized Nigerian fintech transactions with planted violations. |
-| `audit_findings.json` | The agent's output: alert statistics and six full case files. |
-| `dashboard_template.html` | Dashboard source with an `__AUDIT_DATA__` placeholder — see build step below. |
-| `agent_prompt.md` | Prompt to reproduce the audit live with an LLM, for "is the AI real?" moments. |
-| `DEMO_GUIDE.md` | Talking points, demo walkthrough order, and outreach playbook. |
+| `demo/dashboard.html` | The demo — open it directly in a browser. |
+| `demo/dashboard_template.html` | Dashboard source with an `__AUDIT_DATA__` placeholder — see build step below. |
+| `data/generate_data.py` | Seeded generator for the synthetic dataset and agent findings. |
+| `data/transactions.csv` | 1,224 synthetic, anonymized Nigerian fintech transactions with planted violations. |
+| `data/audit_findings.json` | The agent's output: alert statistics and six full case files. |
+| `docs/agent_prompt.md` | Prompt to reproduce the audit live with an LLM, for "is the AI real?" moments. |
+| `docs/DEMO_GUIDE.md` | Talking points, demo walkthrough order, and outreach playbook. |
+| `plans/outreach-plan.md` | Validation step 2: target list, messages, interview script, tracking. |
 | `screenshots/` | Ready-to-send PNGs of every screen. |
 
-Rebuild the dashboard after changing the data:
+Rebuild the dashboard after changing the data (from the repo root):
 
 ```bash
-python generate_data.py
-python -c "import io; d=io.open('audit_findings.json',encoding='utf-8').read(); t=io.open('dashboard_template.html',encoding='utf-8').read(); io.open('dashboard.html','w',encoding='utf-8').write(t.replace('__AUDIT_DATA__', d))"
+python data/generate_data.py
+python -c "import io; d=io.open('data/audit_findings.json',encoding='utf-8').read(); t=io.open('demo/dashboard_template.html',encoding='utf-8').read(); io.open('demo/dashboard.html','w',encoding='utf-8').write(t.replace('__AUDIT_DATA__', d))"
 ```
 
 ## Regulatory context

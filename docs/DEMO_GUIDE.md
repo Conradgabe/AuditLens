@@ -7,23 +7,24 @@ conversations with compliance officers — not to process real data.
 **Everything here is synthetic.** No real transactions, no PII, no client data.
 "AuditLens" is a placeholder name — check availability before using it publicly.
 
-## What's in this folder
+## What's in this repo
 
 | File | What it is |
 |---|---|
-| `dashboard.html` | **The demo.** Self-contained — double-click to open in any browser. Light-mode dashboard with a working left sidebar: **Overview** (navy hero tile, stat tiles, alerts-by-rule chart, needs-review list), **Case queue** (full grouped list), **Reports** (4 STR drafts awaiting sign-off + the auto-filed CTR), and **Rules & policies** (the 5 detection rules with thresholds and per-rule stats). Clicking any case opens its case file — agent memo, evidence with running totals, risk dial, and the STR draft as a paper document with a Copy button; Esc or the back link returns. Every tab and row works — nothing is dead chrome. IBM Plex type loads from Google Fonts when online; falls back gracefully offline. |
-| `screenshots/` | Ready-to-send PNGs: `overview.png` (the LinkedIn/DM shot), `case-file.png` (the case file with the STR draft), `reports.png`, `rules.png`. |
-| `transactions.csv` | 1,224 synthetic Nigerian fintech transactions over 7 days (Jun 30 – Jul 6, 2026) with planted violations. |
-| `audit_findings.json` | The "agent output": alert statistics + 6 case files with justification memos. |
-| `generate_data.py` | Regenerates the CSV and JSON (`python generate_data.py`). Seeded — same output every run. |
-| `dashboard_template.html` | Dashboard source with a `__AUDIT_DATA__` placeholder. |
-| `agent_prompt.md` | Prompt to reproduce the audit **live with Claude on a call** — the counter to "is this real AI output?" |
+| `demo/dashboard.html` | **The demo.** Self-contained — double-click to open in any browser. Light-mode dashboard with a working left sidebar: **Overview** (navy hero tile, stat tiles, alerts-by-rule chart, needs-review list), **Case queue** (full grouped list, sortable), **Reports** (4 STR drafts awaiting sign-off + the auto-filed CTR), and **Rules & policies** (the 5 detection rules with thresholds and per-rule stats). Clicking any case opens its case file — agent memo, evidence with running totals, risk dial, and the STR draft as a paper document with a Copy button; Esc or the back link returns. Every tab and row works — nothing is dead chrome. IBM Plex type loads from Google Fonts when online; falls back gracefully offline. |
+| `screenshots/` | Ready-to-send PNGs: `overview.png` (the LinkedIn/DM shot), `queue.png`, `case-file.png` (the case file with the STR draft), `reports.png`, `rules.png`. |
+| `data/transactions.csv` | 1,224 synthetic Nigerian fintech transactions over 7 days (Jun 30 – Jul 6, 2026) with planted violations. |
+| `data/audit_findings.json` | The "agent output": alert statistics + 6 case files with justification memos. |
+| `data/generate_data.py` | Regenerates the CSV and JSON next to itself. Seeded — same output every run. |
+| `demo/dashboard_template.html` | Dashboard source with a `__AUDIT_DATA__` placeholder. |
+| `docs/agent_prompt.md` | Prompt to reproduce the audit **live with Claude on a call** — the counter to "is this real AI output?" |
+| `plans/outreach-plan.md` | Validation step 2: targets, messages, interview script, tracking. |
 
-Rebuild the dashboard after regenerating data:
+Rebuild the dashboard after regenerating data (from the repo root):
 
 ```
-python generate_data.py
-python -c "import io; d=io.open('audit_findings.json',encoding='utf-8').read(); t=io.open('dashboard_template.html',encoding='utf-8').read(); io.open('dashboard.html','w',encoding='utf-8').write(t.replace('__AUDIT_DATA__', d))"
+python data/generate_data.py
+python -c "import io; d=io.open('data/audit_findings.json',encoding='utf-8').read(); t=io.open('demo/dashboard_template.html',encoding='utf-8').read(); io.open('demo/dashboard.html','w',encoding='utf-8').write(t.replace('__AUDIT_DATA__', d))"
 ```
 
 ## The story the demo tells (your talking points)
@@ -57,15 +58,15 @@ The planted scenarios, if anyone asks what the agent caught:
 
 ## How to use it in outreach (playbook Step 2)
 
-- Attach `overview.png` to the LinkedIn message — it makes the "2-minute
-  screenshot" line literal.
-- On calls: share your screen with `dashboard.html`. The overview makes the pitch
+- Attach `screenshots/overview.png` to the LinkedIn message — it makes the
+  "2-minute screenshot" line literal.
+- On calls: share your screen with `demo/dashboard.html`. The overview makes the pitch
   itself ("4 cases need your review" out of 38 alerts). Then open CASE-2026-0139
   (an auto-cleared false positive with its written justification), go back, and
   open CASE-2026-0141 (the STR draft). That order sells the funnel.
 - Ask, don't pitch: *"What does your current monitoring miss, and what part of your
   week does this not save?"* Then listen.
-- If they doubt the AI is real, run the live reproduction from `agent_prompt.md`.
+- If they doubt the AI is real, run the live reproduction from `docs/agent_prompt.md`.
 
 ## Honesty and caveats
 

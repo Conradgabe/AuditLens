@@ -14,14 +14,16 @@ Deterministic: seeded RNG, fixed planted cases.
 
 import csv
 import json
+import os
 import random
 import re
 from datetime import datetime, timedelta
 
 random.seed(42)
 
-OUT_CSV = "transactions.csv"
-OUT_JSON = "audit_findings.json"
+_HERE = os.path.dirname(os.path.abspath(__file__))
+OUT_CSV = os.path.join(_HERE, "transactions.csv")
+OUT_JSON = os.path.join(_HERE, "audit_findings.json")
 
 PERIOD_START = datetime(2026, 6, 30, 0, 0, 0)
 PERIOD_END = datetime(2026, 7, 6, 23, 59, 59)
