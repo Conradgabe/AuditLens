@@ -68,6 +68,45 @@ The planted scenarios, if anyone asks what the agent caught:
   week does this not save?"* Then listen.
 - If they doubt the AI is real, run the live reproduction from `docs/agent_prompt.md`.
 
+## If they ask: "what's the metric behind the risk score?"
+
+**Be honest about where this stands.** The risk_score values in the demo data
+(91, 87, 78, 74, 12, 18) are hand-set per case to illustrate severity - there is
+no scoring formula behind them yet. Do not imply otherwise.
+
+**What to say:**
+
+> "Right now the risk score in the demo is illustrative - it reflects the
+> severity of the pattern the rule caught, not a calibrated model yet. Building
+> a real scoring methodology - what signals feed it, how they're weighted, how
+> it's validated against outcomes - is exactly the kind of thing I'd want to
+> design with your team's input rather than guess at in isolation."
+
+**If they push for the plausible shape of a real methodology**, you can sketch
+this without claiming it's built:
+
+- **Signal count** - how many independent red flags coincide. CBM-03 already
+  demonstrates this: IP/KYC mismatch + new device + weak name match + night-time
+  initiation scores higher than any single signal alone.
+- **Deviation from baseline** - how far the transaction pattern sits from that
+  customer's own historical norm. This is what separates the two auto-cleared
+  cases from the real ones: the payday case matched an established pattern, the
+  structuring case didn't.
+- **Amount/threshold proximity** - how close a transaction sits to a reporting
+  threshold, and whether the pattern looks structured to avoid it.
+- **Rule-specific weighting** - a hard threshold breach (CTR-05) is deterministic
+  and barely needs a score; a judgment-based rule (CBM-03) needs one because it's
+  inherently probabilistic.
+
+**If asked "rule-based or ML?"** - say rule-based today. That's true, and it's
+also the answer compliance people trust more at this stage. ML-based scoring,
+trained on labeled outcome data, is a phase-2 answer once real dispositions
+exist to train against - not a phase-1 claim.
+
+## Call Q&A prep
+
+See `docs/CALL_QA.md` for a fuller set of likely questions and draft answers.
+
 ## Honesty and caveats
 
 - **Say it's a demo on synthetic data.** The DEMO badge stays on. You're validating
